@@ -21,8 +21,9 @@ data class AccountEntity(
 
 data class TransactionEntity(
     val id: Long,
-    val fromUserId: Long,
-    val toUserId: Long,
+    val fromAccountId: Long,
+    val toAccountId: Long,
     val amount: Double,
+    val transactionStatus: TransactionStatus,
     val createdDate: LocalDateTime = LocalDateTime.now()
 )
