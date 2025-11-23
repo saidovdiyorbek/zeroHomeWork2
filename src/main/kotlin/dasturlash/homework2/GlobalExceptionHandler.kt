@@ -1,5 +1,6 @@
 package dasturlash.homework2
 
+import org.apache.coyote.BadRequestException
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -82,6 +83,18 @@ class GlobalExceptionHandler{
                 errorCode = "account_not_corporate",
                 statusCode = e.statusCode.value(),
                 timestamp = LocalDateTime.now()
+            )
+        )
+    }
+
+    @ExceptionHandler(BadRequestException::class)
+    fun handleBadRequestException(e: BadRequestException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(400).body(
+            ErrorResponse(
+                success = false,
+                message = e.message ?: "Bad request",
+                errorCode = "bad_request",
+                statusCode = 400,
             )
         )
     }
