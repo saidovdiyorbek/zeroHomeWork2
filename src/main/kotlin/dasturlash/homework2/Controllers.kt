@@ -50,10 +50,9 @@ class AccountController(
 class TransactionController(
     private val transactionService: TransactionService,
 ){
-    @Operation(summary = "Deposit transaction by account id")
-    @PostMapping("/deposit/{accountId}")
-    fun deposit(@PathVariable accountId: Long,
-                      @RequestBody transaction: TransactionDTO) = transactionService.deposit(accountId, transaction)
+    @Operation(summary = "Deposit transaction")
+    @PostMapping("/deposit")
+    fun deposit(@RequestBody transaction: TransactionDTO) = transactionService.deposit(transaction)
 
     @Operation(summary = "Withdraw transaction amount")
     @PostMapping("/withdraw/{accountId}")
@@ -63,4 +62,14 @@ class TransactionController(
     @Operation(summary = "Transfer transaction between accounts")
     @PostMapping("/transfer")
     fun transfer(@RequestBody transfer: TransactionDTO.TransferDTO) = transactionService.transfer(transfer)
+}
+
+@RestController
+@RequestMapping("/api/users")
+class DefaultEntity(
+    private val dataBase: DataBase
+){
+
+    @PostMapping("/default-entities")
+    fun defaultEntities() = dataBase.defaultEntities()
 }
