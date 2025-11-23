@@ -93,13 +93,37 @@ class AccountServiceImpl(private val userService: UserService) : AccountService 
     fun checkUserAccountCount(userId: Long): Int {
         return DataBase.accounts.count { it.userId == userId }
     }
+
+    fun findById(accountId: Long): AccountEntity? {
+        return DataBase.accounts.find { it.id == accountId }
+    }
 }
 //Account Service on top
 
+
+//Transaction Service below
+
+interface TransactionService {
+    fun deposit(accountId: Long, transaction: TransactionDTO): Any
+
+}
+
+@Service
+class TransactionImpl(
+    private val accountServiceImpl: AccountServiceImpl
+) : TransactionService {
+    override fun deposit(accountId: Long, transaction: TransactionDTO): Any {
+        val account = accountServiceImpl.findById(accountId) ?: throw AccountNotFoundException()
+        if(transaction.amount < 0)  throw InvalidAmountException()
+        DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), "SYSTEM", accountId, transaction.amount))
+        return "Transaction deposited!"
+    }
+
+}
 object DataBase{
     val users: MutableList<UserEntity> = mutableListOf()
     val accounts: MutableList<AccountEntity> = mutableListOf()
-    val transactions: MutableList<UserDTO> = mutableListOf()
+    val transactions: MutableList<TransactionEntity> = mutableListOf()
 
     fun<T> generationId(list: MutableList<T>) : Long = list.size.toLong()+1
 }
