@@ -47,6 +47,19 @@ class GlobalExceptionHandler{
             )
         )
     }
+
+    @ExceptionHandler(AccountNotFoundException::class)
+    fun handleAccountNotFoundException(e: AccountNotFoundException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(e.statusCode).body(
+            ErrorResponse(
+                success = false,
+                message = e.message ?: "Account not found",
+                errorCode = "account_not_found",
+                statusCode = e.statusCode.value(),
+                timestamp = LocalDateTime.now()
+            )
+        )
+    }
 }
 
 class ErrorResponse(
