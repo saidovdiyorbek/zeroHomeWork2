@@ -60,6 +60,18 @@ class GlobalExceptionHandler{
             )
         )
     }
+    @ExceptionHandler(InvalidAmountException::class)
+    fun handleInvalidAmountException(e: InvalidAmountException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity.status(e.statusCode.value()).body(
+            ErrorResponse(
+                success = false,
+                message = e.message ?: "Invalid amount",
+                errorCode = "invalid_amount",
+                statusCode = e.statusCode.value(),
+                timestamp = LocalDateTime.now()
+            )
+        )
+    }
 }
 
 class ErrorResponse(
