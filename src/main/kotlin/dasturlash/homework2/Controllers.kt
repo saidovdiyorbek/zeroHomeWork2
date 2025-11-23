@@ -54,4 +54,13 @@ class TransactionController(
     @PostMapping("/deposit/{accountId}")
     fun deposit(@PathVariable accountId: Long,
                       @RequestBody transaction: TransactionDTO) = transactionService.deposit(accountId, transaction)
+
+    @Operation(summary = "Withdraw transaction amount")
+    @PostMapping("/withdraw/{accountId}")
+    fun withdraw(@PathVariable accountId: Long,
+                 @RequestParam amount: Double) = transactionService.withdraw(accountId, amount)
+
+    @Operation(summary = "Transfer transaction between accounts")
+    @PostMapping("/transfer")
+    fun transfer(@RequestBody transfer: TransactionDTO.TransferDTO) = transactionService.transfer(transfer)
 }
