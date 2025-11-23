@@ -1,5 +1,7 @@
 package dasturlash.homework2
 
+import org.apache.coyote.BadRequestException
+import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import java.nio.file.attribute.UserPrincipalNotFoundException
 import java.time.LocalDateTime
@@ -36,7 +38,7 @@ class UserServiceImpl : UserService {
     override fun getById(userId: Long): UserDTO {
         DataBase.users.forEach { user ->
             if (user.id == userId){
-                return UserDTO(username = user.username, email = user.email, isCorporate = user.isCorporate)
+                return UserDTO(id = user.id, username = user.username, email = user.email, isCorporate = user.isCorporate)
             }
         }
         throw UserNotFoundException("User not found with id $userId")
@@ -45,20 +47,18 @@ class UserServiceImpl : UserService {
     override fun getAll(): MutableList<UserDTO> {
         var users : MutableList<UserDTO> = mutableListOf()
         DataBase.users.forEach { user ->
-            users.add(UserDTO(username = user.username, email = user.email, isCorporate = user.isCorporate))
+            users.add(UserDTO(id = user.id, username = user.username, email = user.email, isCorporate = user.isCorporate))
         }
         return users
     }
-
-}
-fun checkUserAccountCount(userId: Long): Int {
+    fun checkUserAccountCount(userId: Long): Int {
         return DataBase.accounts.count { it.userId == userId }
     }
-fun checkUserCorporate(userId: Long): Boolean {
-    val account = DataBase.users.find { it.id == userId }
-    return account?.isCorporate ?: false
+    fun checkUserCorporate(userId: Long): Boolean {
+        val account = DataBase.users.find { it.id == userId }
+        return account?.isCorporate ?: false
+    }
 }
-
 // UserService on top
 
 //Account service below
@@ -68,11 +68,11 @@ interface AccountService {
 }
 
 @Service
-class AccountServiceImpl(private val userService: UserService) : AccountService {
+class AccountServiceImpl(private val userService: UserServiceImpl) : AccountService {
     override fun create(userId: Long): Any {
         userService.getById(userId)
         val accountCount = checkUserAccountCount(userId)
-        val userCorporate = checkUserCorporate(userId)
+        val userCorporate = userService.checkUserCorporate(userId)
 
         if ((accountCount == 5 && !userCorporate) || accountCount == 10){
             if (userCorporate){
@@ -104,7 +104,7 @@ class AccountServiceImpl(private val userService: UserService) : AccountService 
 //Transaction Service below
 
 interface TransactionService {
-    fun deposit(accountId: Long, transaction: TransactionDTO): Any
+    fun deposit(transaction: TransactionDTO): Any
     fun withdraw(accountId: Long, amount: Double): Any
     fun transfer(transfer: TransactionDTO.TransferDTO): Any
 
@@ -112,19 +112,20 @@ interface TransactionService {
 
 @Service
 class TransactionImpl(
-    private val accountServiceImpl: AccountServiceImpl
+    private val accountServiceImpl: AccountServiceImpl,
+    private val userService: UserServiceImpl,
 ) : TransactionService {
-    override fun deposit(accountId: Long, transaction: TransactionDTO): Any {
-        var account = accountServiceImpl.findById(accountId) ?: throw AccountNotFoundException()
-        if(transaction.amount < 0)  throw InvalidAmountException()
-        DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), "SYSTEM", accountId, transaction.amount))
+    override fun deposit(transaction: TransactionDTO): Any {
+        var account = accountServiceImpl.findById(transaction.toAccountId)     ?: throw AccountNotFoundException()
+        if(transaction.amount <= 0.0)  throw InvalidAmountException()
+        DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), "SYSTEM", transaction.toAccountId, transaction.amount))
         account.balance += transaction.amount
         return "Transaction deposited!"
     }
 
     override fun withdraw(accountId: Long, amount: Double): Any {
         val account = accountServiceImpl.findById(accountId) ?: throw AccountNotFoundException()
-        if(amount < 0 || amount > account.balance) throw InvalidAmountException()
+        if(amount <= 0.0 || amount > account.balance) throw InvalidAmountException()
         DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), account.id, "SYSTEM", amount))
         account.balance -= amount
         return "Transaction withdraw!"
@@ -133,20 +134,42 @@ class TransactionImpl(
     override fun transfer(transfer: TransactionDTO.TransferDTO): Any {
         var fromAccount = accountServiceImpl.findById(transfer.fromAccountId) ?: throw AccountNotFoundException()
         var toAccount = accountServiceImpl.findById(transfer.toAccountId) ?: throw AccountNotFoundException()
-        if (transfer.fromAccountId == transfer.toAccountId) throw SameAccountTransactionException()
-        if (fromAccount.balance > transfer.amount && transfer.amount > 0){
-            DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), fromAccountId = transfer.fromAccountId, toAccountId = transfer.toAccountId, amount = transfer.amount))
-            fromAccount.balance -= transfer.amount
-            toAccount.balance += transfer.amount
+
+        val fromUser = userService.checkUserCorporate(fromAccount.userId)
+        val toUser = userService.checkUserCorporate(toAccount.userId)
+
+        var checkAmount = transfer.amount
+        if (toUser) {
+            if(!fromUser) {
+                checkAmount = transfer.amount + transfer.amount * 1.5 / 100;
+            }
         }
-        return "Transaction transfer!"
+
+
+        if (transfer.fromAccountId == transfer.toAccountId) throw SameAccountTransactionException()
+        if (fromAccount.balance > checkAmount && checkAmount > 0){
+            DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), fromAccountId = transfer.fromAccountId, toAccountId = transfer.toAccountId, amount = checkAmount))
+            fromAccount.balance -= checkAmount
+            toAccount.balance += transfer.amount
+            return "Transaction transfer!"
+        }
+        throw BadRequestException("Not enough balance or amount is negative")
     }
 
 }
+@Component
 object DataBase{
     val users: MutableList<UserEntity> = mutableListOf()
     val accounts: MutableList<AccountEntity> = mutableListOf()
     val transactions: MutableList<TransactionEntity> = mutableListOf()
 
+
+    fun defaultEntities(){
+        users.add(UserEntity(1, "Diyor", "diyor@gmail.com", true, LocalDateTime.now()))
+        users.add(UserEntity(2, "Oybek", "oybek@gmail.com", true, LocalDateTime.now()))
+
+        accounts.add(AccountEntity(1, 1, 25000.0, LocalDateTime.now()))
+        accounts.add(AccountEntity(2, 2, 0.0, LocalDateTime.now()))
+    }
     fun<T> generationId(list: MutableList<T>) : Long = list.size.toLong()+1
 }
