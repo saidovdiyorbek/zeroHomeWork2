@@ -72,6 +72,19 @@ class GlobalExceptionHandler{
             )
         )
     }
+
+    @ExceptionHandler(SameAccountTransactionException::class)
+    fun handleSameAccountTransactionException(e: SameAccountTransactionException): ResponseEntity<ErrorResponse>{
+        return ResponseEntity.status(e.statusCode.value()).body(
+            ErrorResponse(
+                success = false,
+                message = e.message ?: "Account not corporate",
+                errorCode = "account_not_corporate",
+                statusCode = e.statusCode.value(),
+                timestamp = LocalDateTime.now()
+            )
+        )
+    }
 }
 
 class ErrorResponse(
