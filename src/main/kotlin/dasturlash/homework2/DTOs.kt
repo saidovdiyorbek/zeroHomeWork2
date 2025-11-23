@@ -18,4 +18,12 @@ data class TransactionDTO(
     val toAccountId: Long,
     @Schema(description = "Amount of money", example = "25000.0")
     val amount: Double,
-)
+){
+    data class TransferDTO(
+        @Schema(description = "From account id", example = "1")
+        val fromAccountId: Long,
+        @Schema(description = "To account id", example = "2")
+        val toAccountId: Long,
+        val amount: Double,
+    )
+}
