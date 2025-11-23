@@ -3,6 +3,7 @@ package dasturlash.homework2
 import io.swagger.v3.oas.annotations.media.Schema
 
 data class UserDTO(
+    val id: Long?= null,
     @Schema(description = "User username", example = "polvon")
     val username: String,
     @Schema(description = "User email", example = "polvon@example.com")
