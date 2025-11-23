@@ -44,3 +44,14 @@ class AccountController(
     @GetMapping("/{accountId}")
     fun getBalance(@PathVariable accountId: Long): Any = accountService.getBalance(accountId)
 }
+
+@RestController
+@RequestMapping("/api/transactions")
+class TransactionController(
+    private val transactionService: TransactionService,
+){
+    @Operation(summary = "Deposit transaction by account id")
+    @PostMapping("/deposit/{accountId}")
+    fun deposit(@PathVariable accountId: Long,
+                      @RequestBody transaction: TransactionDTO) = transactionService.deposit(accountId, transaction)
+}
