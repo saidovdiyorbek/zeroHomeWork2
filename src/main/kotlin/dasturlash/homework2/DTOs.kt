@@ -10,3 +10,12 @@ data class UserDTO(
     @Schema(description = "Corporate", example = "true/false")
     val isCorporate: Boolean,
 )
+
+data class TransactionDTO(
+    @Schema(description = "Account id/System - when type deposit", example = "1/System")
+    val fromAccountId: Any,
+    @Schema(description = "Recipient account id", example = "1")
+    val toAccountId: Long,
+    @Schema(description = "Amount of money", example = "25000.0")
+    val amount: Double,
+)
