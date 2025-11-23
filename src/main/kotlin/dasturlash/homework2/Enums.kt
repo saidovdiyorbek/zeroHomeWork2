@@ -1,5 +1,5 @@
 package dasturlash.homework2
 
-enum class TransactionStatus {
+enum class TransactionType {
     DEPOSIT, WITHDRAW, TRANSFER
 }
