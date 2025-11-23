@@ -105,6 +105,8 @@ class AccountServiceImpl(private val userService: UserService) : AccountService 
 
 interface TransactionService {
     fun deposit(accountId: Long, transaction: TransactionDTO): Any
+    fun withdraw(accountId: Long, amount: Double): Any
+    fun transfer(transfer: TransactionDTO.TransferDTO): Any
 
 }
 
@@ -113,10 +115,31 @@ class TransactionImpl(
     private val accountServiceImpl: AccountServiceImpl
 ) : TransactionService {
     override fun deposit(accountId: Long, transaction: TransactionDTO): Any {
-        val account = accountServiceImpl.findById(accountId) ?: throw AccountNotFoundException()
+        var account = accountServiceImpl.findById(accountId) ?: throw AccountNotFoundException()
         if(transaction.amount < 0)  throw InvalidAmountException()
         DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), "SYSTEM", accountId, transaction.amount))
+        account.balance += transaction.amount
         return "Transaction deposited!"
+    }
+
+    override fun withdraw(accountId: Long, amount: Double): Any {
+        val account = accountServiceImpl.findById(accountId) ?: throw AccountNotFoundException()
+        if(amount < 0 || amount > account.balance) throw InvalidAmountException()
+        DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), account.id, "SYSTEM", amount))
+        account.balance -= amount
+        return "Transaction withdraw!"
+    }
+
+    override fun transfer(transfer: TransactionDTO.TransferDTO): Any {
+        var fromAccount = accountServiceImpl.findById(transfer.fromAccountId) ?: throw AccountNotFoundException()
+        var toAccount = accountServiceImpl.findById(transfer.toAccountId) ?: throw AccountNotFoundException()
+        if (transfer.fromAccountId == transfer.toAccountId) throw SameAccountTransactionException()
+        if (fromAccount.balance > transfer.amount && transfer.amount > 0){
+            DataBase.transactions.add(TransactionEntity(id = DataBase.generationId(DataBase.transactions), fromAccountId = transfer.fromAccountId, toAccountId = transfer.toAccountId, amount = transfer.amount))
+            fromAccount.balance -= transfer.amount
+            toAccount.balance += transfer.amount
+        }
+        return "Transaction transfer!"
     }
 
 }
